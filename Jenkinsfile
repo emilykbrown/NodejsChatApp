@@ -1,4 +1,4 @@
-node('emily-server') {
+node('ubuntu-us-appserver-2140-60') {
 
     def app
 
