@@ -1,8 +1,10 @@
-version: '2.4'
+version: '3.3'
 services:
   apache:
     image: 'emilykbrown/NodejsChatApp'
+    environment:
+      - 'PORT:3000'
     ports:
-      - '80:80'
+      - '80:3000'
     volumes:
-    - /:/usr/local/apache2/htdocs/
+    - /:/app
