@@ -8,6 +8,20 @@ node('ubuntu-us-appserver-2140-60')
         checkout scm
     }
 
+    stage('SAST') 
+    {
+        snykSecurity(
+
+            snykInstallation: 'Snyk',
+
+            snykTokenId: 'Synkid',
+
+            severity: 'critical'
+
+         )
+ 
+    }
+
     stage('Build-and-Tag')
     {
         /* This builds the actual image; 
