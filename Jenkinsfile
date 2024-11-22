@@ -14,7 +14,7 @@ node('ubuntu-us-appserver-2140-60')
 
             snykInstallation: 'Snyk',
 
-            snykTokenId: 'Synkid',
+            snykTokenId: 'snyk-token',
 
             severity: 'critical'
 
