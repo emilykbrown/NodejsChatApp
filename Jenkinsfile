@@ -1,47 +1,81 @@
-node('ubuntu-us-appserver-2140-60')
-{
-
-    def app
-    stage('Cloning Git')
-    {
-        /* Let's make sure we have the repository cloned to our workspace */
-        checkout scm
-    }
-
-    stage('SAST') 
-    {
-        snykSecurity(
-
-            snykInstallation: 'Snyk',
-
-            snykTokenId: 'snyk-token',
-
-            severity: 'critical'
-
-         )
- 
-    }
-
-    stage('Build-and-Tag')
-    {
-        /* This builds the actual image; 
-             * This is synonymous to docker build on the command line */
-        app = docker.build('emilykbrown/nodejschatapp')
-    }
-
-    stage('Post-to-dockerhub')
-    {
-        docker.withRegistry('https://registry.hub.docker.com', 'dockerhub_credentials')
-        {
-            app.push("latest")
-        }
+pipeline {
+    agent none
     
-    }
+    stages {
+        stage('CLONE GIT REPOSITORY') {
+            agent {
+                label 'ubuntu-us-sonar-2140-60'
+            }
+            steps {
+                checkout scm
+            }
+        }  
 
-    stage('Deploy')
-    {
-        sh "docker-compose down"
-        sh "docker-compose up -d"
-    }
+        stage('SCA-SAST-SNYK-TEST') {
+            agent any
+            steps {
+                script {
+                    snykSecurity(
+                        snykInstallation: 'Snyk',
+                        snykTokenId: 'snyk-token',
+                        severity: 'critical'
+                    )
+                }
+            }
+        }
 
+        stage('SonarQube Analysis') {
+            agent {
+                label 'ubuntu-us-sonar-2140-60'
+            }
+            steps {
+                script {
+                    def scannerHome = tool 'SonarQubeScanner'
+                    withSonarQubeEnv('sonarqube') {
+                        sh "${scannerHome}/bin/sonar-scanner \
+                            -Dsonar.projectKey=gameapp \
+                            -Dsonar.sources=."
+                    }
+                }
+            }
+        }
+
+        stage('BUILD-AND-TAG') {
+            agent {
+                label 'ubuntu-us-sonar-2140-60'
+            }
+            steps {
+                script {
+                    def app = docker.build('emilykbrown/nodejschatapp')
+                    app.tag("latest")
+                }
+            }
+        }
+
+        stage('POST-TO-DOCKERHUB') {    
+            agent {
+                label 'ubuntu-us-sonar-2140-60'
+            }
+            steps {
+                script {
+                    docker.withRegistry('https://registry.hub.docker.com', 'dockerhub_credentials') {
+                        def app = docker.image('emilykbrown/nodejschatapp')
+                        app.push("latest")
+                    }
+                }
+            }
+        }
+
+        stage('DEPLOYMENT') {    
+            agent {
+                label 'ubuntu-us-sonar-2140-60'
+            }
+            steps {
+                sh "docker-compose down"
+                sh "docker-compose up -d"   
+            }
+        }
+    }
 }
+
+
